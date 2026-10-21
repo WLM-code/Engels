@@ -185,7 +185,7 @@ input[type=text],textarea{border:2.5px solid var(--outline);border-radius:14px}
 .nextlvl{display:flex;align-items:center;gap:14px;background:var(--cat-bg);border:3px solid var(--outline);border-radius:22px;padding:14px;box-shadow:5px 5px 0 var(--cat)}
 .nextlvl .stk{width:64px;height:64px}
 .lvtxt{display:flex;flex-direction:column;flex:1;min-width:0}
-.lvtxt b{font-family:var(--font-head);font-size:1.35rem;line-height:1.15;overflow-wrap:anywhere}
+.lvtxt b{font-family:var(--font-head);font-size:1.35rem;line-height:1.15;overflow-wrap:break-word}
 .lvtxt small{color:var(--muted);font-weight:700}
 .btn.big{font-size:1.2rem;padding:12px 22px;min-height:54px}
 .path{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
@@ -201,6 +201,19 @@ input[type=text],textarea{border:2.5px solid var(--outline);border-radius:14px}
 .stars,.starsbig{color:#d68a00;letter-spacing:.08em;white-space:nowrap}
 .starsbig{font-size:2.2rem;line-height:1}
 .goals{border:2px dashed var(--outline);border-radius:14px;padding:10px 14px}.goals summary{cursor:pointer;font-weight:700}
+
+.journey{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.stn{font:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;border:2.5px solid var(--outline);border-radius:16px;background:var(--surface);color:var(--ink);padding:8px 4px;cursor:pointer;box-shadow:3px 3px 0 var(--outline);min-width:0}
+.stn b{font-family:var(--font-head);font-size:.82rem;line-height:1.1;overflow-wrap:anywhere}
+.stn small{font-size:.72rem;color:var(--muted);font-weight:700}
+.stnico .stk{width:30px;height:26px}
+.stn.done{background:var(--ok-bg)}.stn.now{background:var(--sun);color:#26124f}.stn.now small{color:#4a2a7a}
+.stn.lock{opacity:.55;border-style:dashed;cursor:not-allowed;box-shadow:none}.stn.lock .stk{filter:grayscale(1)}
+.stn[aria-pressed="true"]{outline:3px solid var(--pink);outline-offset:2px}
+.sec{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.sechead{display:flex;align-items:center;gap:10px}.sechead h3{flex:none}.sechead .bar{flex:1;height:10px;min-width:40px}
+.nowtag{background:var(--pink);color:#26124f;border:2px solid var(--outline);border-radius:99px;font-weight:800;font-size:.75rem;padding:1px 8px}
+@media (max-width:520px){.stn b{font-size:.7rem}.stn small{font-size:.64rem}}
 </style>
 
 <div class="app">
@@ -217,7 +230,7 @@ input[type=text],textarea{border:2.5px solid var(--outline);border-radius:14px}
   <header class="stack">
     <div class="brandrow"><div class="logo"><svg class="ico" aria-hidden="true"><use href="#s-rainbow"/></svg><h1>A-klas <b>Engels</b></h1></div><svg class="deco" aria-hidden="true"><use href="#s-star"/></svg><svg class="deco" aria-hidden="true"><use href="#s-heart"/></svg><svg class="deco" aria-hidden="true"><use href="#s-sparkle"/></svg></div>
     <div class="sub">Bridging the Gap · Chapter 1 “This is me”</div>
-    <div class="units" id="units" role="group" aria-label="Kies een thema"></div>
+    <div class="stack" id="units" aria-label="Jouw reis"></div>
   </header>
   <div class="tape" aria-hidden="true"></div>
   <nav class="tabs" id="tabs" role="tablist"></nav>
@@ -762,6 +775,15 @@ function sizeChips(){return `<div class="stack"><span class="field-label">Aantal
 function unitMastery(u){const keys=[];u.words.forEach(g=>g.items.forEach(it=>keys.push(u.id+':'+it.en)));const done=keys.filter(k=>(store.mastery[k]||0)>=2).length;return [done,keys.length]}
 
 const PASS=.8;
+const unitDone=u=>!!(store.lv[u.id+'|boss']&&store.lv[u.id+'|boss'].passed);
+const unitOpenI=i=>store.unlockAll||i===0||unitDone(UNITS[i-1]);
+const curUnitIdx=()=>{const i=UNITS.findIndex(u=>!unitDone(u));return i<0?UNITS.length-1:i};
+const SEC={w1:'Woorden',w2:'Woorden',s1:'Stones',s2:'Stones',sy:'Stones',g:'Grammar',n:'Luisteren',r:'Luisteren',sp:'Luisteren',a:'Luisteren',v:'Vlog',boss:'Eindlevel'};
+function journeyHTML(){let tot=0,done=0;UNITS.forEach(u=>{const L=levelsOf(u);tot+=L.length;done+=L.filter(passed).length});
+  const cur=curUnitIdx();
+  return `<div class="journey" role="list">${UNITS.map((u,i)=>{const L=levelsOf(u);const d=L.filter(passed).length;const st=unitDone(u)?'done':!unitOpenI(i)?'lock':i===cur?'now':'open';
+    return `<button class="stn ${st}" role="listitem" ${st==='lock'?'disabled':''} aria-pressed="${S.unit===u.id}" data-act="unit" data-v="${u.id}"><span class="stnico">${stk(['rainbow','heart','star','flower','moon'][i%5])}</span><b>${esc(u.label)}</b><small>${st==='lock'?'🔒 Op slot':st==='done'?'✓ Klaar':d+' / '+L.length+' levels'}</small></button>`}).join('')}</div>
+  <div class="row"><div class="bar" aria-hidden="true"><i style="width:${tot?done/tot*100:0}%"></i></div><span class="muted" style="font-variant-numeric:tabular-nums"><b>${Math.round(tot?done/tot*100:0)}%</b> van de hele reis · ${done} van ${tot} levels</span></div>`}
 const curUnit=()=>UNITS.find(u=>u.id===S.unit)||UNITS[UNITS.length-1];
 const chunk=(a,n)=>{const o=[];for(let i=0;i<a.length;i+=n)o.push(a.slice(i,i+n));return o};
 const passed=l=>!!(store.lv[l.id]&&store.lv[l.id].passed);
@@ -806,16 +828,19 @@ function viewStart(){
   if(R&&S.lv&&S.lv.kind==='sy')return repeatHTML();
   if(S.lv&&S.lv.kind==='v')return `<h2>${esc(S.lv.title)}</h2>${vlogHTML()}<div class="row"><button class="btn primary" data-act="lvdone">Klaar met mijn vlog</button><button class="btn" data-act="stop">Naar het pad</button></div>`;
   const u=curUnit(),L=levelsOf(u);const done=L.filter(passed).length;let cur=L.findIndex(l=>!passed(l));const all=cur<0;if(all)cur=L.length-1;
-  const cl=L[cur];const qd=Math.floor(Date.now()/864e5)+(S.qo||0);
-  const hero=all?`<div class="award">${stk('rainbow')}<div><b class="hero" style="font-size:1.6rem">Alle levels gehaald!</b><div>Wat een topprestatie in ${esc(u.label)}. Kies hierboven een ander thema.</div></div></div>`
+  const cl=L[cur];const qd=Math.floor(Date.now()/864e5)+(S.qo||0);const ui=UNITS.indexOf(u);const nextU=UNITS[ui+1];
+  const hero=all?`<div class="award">${stk('rainbow')}<div><b class="hero" style="font-size:1.6rem">Thema gehaald!</b><div>Wat een topprestatie met ${esc(u.label)}.</div>${nextU&&unitOpenI(ui+1)?`<div class="row" style="margin-top:8px"><button class="btn primary" data-act="unit" data-v="${nextU.id}">Naar ${esc(nextU.label)} →</button></div>`:'<div><b>Je hebt de hele reis voltooid!</b></div>'}</div></div>`
    :`<div class="nextlvl cat-${KIND_CAT[cl.kind]}">${stk(KIND_ICON[cl.kind])}<div class="lvtxt"><span class="field-label">Level ${cur+1} van ${L.length}</span><b>${esc(cl.title)}</b><small>${esc(cl.sub)}</small></div><button class="btn primary big" data-act="lv" data-v="${cur}">Start</button></div>`;
-  const rows=L.map((l,i)=>{const st=store.lv[l.id]||{};const open=levelOpen(L,i);const cls=passed(l)?'done':i===cur?'now':open?'open':'lock';
-    return `<li class="lvrow ${cls} cat-${KIND_CAT[l.kind]}"><span class="nr">${i+1}</span>${stk(KIND_ICON[l.kind])}<span class="lvt"><b>${esc(l.title)}</b><small>${esc(l.sub)}</small></span><span class="rt" aria-label="${passed(l)?(st.stars||1)+' van 3 sterren':open?'open':'op slot'}">${passed(l)?`<span class="stars">${starsTxt(st.stars||1)}</span>`:open?'':'🔒'}</span>${open&&(passed(l)||store.unlockAll)&&i!==cur?`<button class="btn small" data-act="lv" data-v="${i}">${passed(l)?'Opnieuw':'Start'}</button>`:''}</li>`});
+  const row=(l,i)=>{const st=store.lv[l.id]||{};const open=levelOpen(L,i);const cls=passed(l)?'done':i===cur?'now':open?'open':'lock';
+    return `<li class="lvrow ${cls} cat-${KIND_CAT[l.kind]}"><span class="nr">${i+1}</span>${stk(KIND_ICON[l.kind])}<span class="lvt"><b>${esc(l.title)}</b><small>${esc(l.sub)}${st.best?` · beste score ${st.best}%`:''}</small></span><span class="rt" aria-label="${passed(l)?(st.stars||1)+' van 3 sterren':open?'open':'op slot'}">${passed(l)?`<span class="stars">${starsTxt(st.stars||1)}</span>`:i===cur?'<span class="nowtag">NU</span>':open?'':'🔒'}</span>${open&&(passed(l)||store.unlockAll)&&i!==cur?`<button class="btn small" data-act="lv" data-v="${i}">${passed(l)?'Opnieuw':'Start'}</button>`:''}</li>`};
+  const secs=[];L.forEach((l,i)=>{const n=SEC[l.kind];let g=secs[secs.length-1];if(!g||g.n!==n){g={n,items:[]};secs.push(g)}g.items.push([l,i])});
+  const path=secs.map(g=>{const d=g.items.filter(([l])=>passed(l)).length;const t=g.items.length;
+    return `<div class="sec"><div class="sechead"><h3>${esc(g.n)}</h3><span class="muted" style="font-variant-numeric:tabular-nums">${d} / ${t}</span><div class="bar mini" aria-hidden="true"><i style="width:${d/t*100}%"></i></div></div><ol class="path">${g.items.map(([l,i])=>row(l,i)).join('')}</ol></div>`}).join('');
   return `<h2>${esc(u.label)}</h2>
   ${hero}
-  <div class="row"><div class="bar" aria-hidden="true"><i style="width:${done/L.length*100}%"></i></div><span class="muted" style="font-variant-numeric:tabular-nums">${done} van ${L.length} levels</span></div>
+  <div class="row"><div class="bar" aria-hidden="true"><i style="width:${done/L.length*100}%"></i></div><span class="muted" style="font-variant-numeric:tabular-nums"><b>${Math.round(done/L.length*100)}%</b> van dit thema · ${done} van ${L.length}</span></div>
   ${quoteHTML(qd,true)}
-  <div class="stack"><h3>Jouw pad</h3><span class="muted">Haal in elk level minstens 80% om het volgende level te openen.</span><ol class="path">${rows.slice(Math.max(0,cur-1),cur+4).join('')}</ol><details class="goals"><summary>Alle ${L.length} levels</summary><ol class="path" style="margin-top:8px">${rows.join('')}</ol></details></div>
+  <div class="stack"><h3>Jouw pad</h3><span class="muted">Haal in elk level minstens 80% om het volgende level te openen. Haal je het Eindlevel, dan opent het volgende thema.</span>${path}</div>
   ${stickerBook()}
   ${u.id==='c1'?`<details class="goals"><summary>Toetsdoelen (blz. 87)</summary><div class="stack" style="margin-top:8px">${GOALS.map((g,i)=>`<div class="check"><input type="checkbox" id="chk${i}" data-act="chk" data-v="${i}" ${store.checks[i]?'checked':''}><label for="chk${i}" style="flex:1">${esc(g[0])}</label></div>`).join('')}</div></details>`:''}`}
 function unlockCard(){return `<div class="stack"><h3>Voor de docent</h3><div class="row"><button class="btn" data-act="unlockall" aria-pressed="${store.unlockAll}">${store.unlockAll?'Levels weer vergrendelen':'Alle levels ontgrendelen'}</button><button class="btn" data-act="resetlv">Voortgang wissen</button></div><span class="muted">Ontgrendelen is handig om een level te laten zien in de klas. Het pad van leerlingen staat alleen op hun eigen apparaat.</span></div>`}
@@ -987,7 +1012,7 @@ async function exportCSV(){const csv=buildCSV();T.csv=csv;let ok=false;
 
 /* ---------- renderen ---------- */
 function render(){
-  $('#units').innerHTML=UNITS.map(u=>`<button class="chip" aria-pressed="${S.unit===u.id}" data-act="unit" data-v="${u.id}">${esc(u.label)}</button>`).join('');
+  if(!S.unitSet){S.unit=UNITS[curUnitIdx()].id;S.unitSet=true}$('#units').innerHTML=journeyHTML();
   $('#tabs').innerHTML=TABS.map(([k,l])=>`<button class="tab t-${k}" role="tab" aria-selected="${S.tab===k}" data-act="tab" data-v="${k}">${l}</button>`).join('');
   const v=$('#view');v.className='view cat-'+(S.tab==='start'&&S.lv?({w1:'words',w2:'words',s1:'stones',s2:'stones',sy:'speak',g:'gram',n:'speak',r:'speak',sp:'speak',a:'speak',v:'speak',boss:'teach'}[S.lv.kind]||'teach'):CAT[S.tab]);
   const fn={start:viewStart,teach:()=>viewTeach()+unlockCard()}[S.tab];
@@ -1003,7 +1028,7 @@ document.addEventListener('click',e=>{
   switch(act){
     case 'newq':S.qo=(S.qo||0)+1;render();break;
     case 'tab':S.tab=v;Q=null;R=null;render();break;
-    case 'unit':S.unit=v;store.unit=v;save();S.gw=S.gs=S.gg='';Q=null;R=null;render();break;
+    case 'unit':{const ui=UNITS.findIndex(x=>x.id===v);if(ui<0||!unitOpenI(ui))break}S.unit=v;store.unit=v;save();S.gw=S.gs=S.gg='';Q=null;R=null;render();break;
     case 'grp':S[el.dataset.k]=v;render();break;
     case 'n':S.n=+v;render();break;
     case 'chk':store.checks[v]=el.checked;save();break;
