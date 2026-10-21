@@ -279,18 +279,14 @@ brother=broer
 sister=zus
 boy=jongen
 girl=meisje`),
- stones:parse(`Praten over je familie (luisterzinnen blz. 23)
-Do you have a brother?=Heb jij een broer?
+ stones:parse(`Talking about family
+This is my father.|This is my dad.=Dit is mijn vader.
+That is my mother.|That is my mum.=Dat is mijn moeder.
+This is my sister.=Dit is mijn zus.
+That is my brother.=Dat is mijn broer.
+Do you have a sister?|Do you have a brother.|Do you have a brother?=Heb jij een zus/broer?
 Yes, I do.=Ja, dat heb ik.
-No, I don't.=Nee, dat heb ik niet.
-I have a little brother.=Ik heb een kleine broer.
-I have a little sister.=Ik heb een klein zusje.
-That is my brother Tom.=Dat is mijn broer Tom.
-This is my mother.=Dit is mijn moeder.
-She is 14 years old.=Zij is 14 jaar oud.
-That is my sister Olivia.=Dat is mijn zus Olivia.
-He is my dad's brother.=Hij is de broer van mijn vader.
-My sister Nicole is here.=Mijn zus Nicole is hier.`),
+No, I don't.=Nee, dat heb ik niet.`),
  grammar:[
  ['Personal pronouns','___ am a boy.','I',['You','He','She'],'Bij “am” hoort I.'],
  ['Personal pronouns','Mark is thirteen. ___ is my brother.','He',['She','It','They'],'Mark is een jongen: he.'],
@@ -345,7 +341,7 @@ Today is Monday.=Vandaag is het maandag.`),
  ['Possessive pronouns','The brown house is ___. (van ons)','ours',['our','we','us'],'Zonder zelfstandig naamwoord erachter: ours.'],
  ['Possessive pronouns','The red car is ___. (van hen)','theirs',['their','they','them'],'Zonder zelfstandig naamwoord erachter: theirs.'],
  ['Possessive pronouns','Mark and Amy: ___ names are Mark and Amy.','Their',['They','Them','Theirs'],'Met een zelfstandig naamwoord erachter: their.']]},
-{id:'bg3',label:'3 My home',pages:'blz. 33–36',
+{id:'bg3',label:'3 My home',pages:'blz. 33–35',
  words:parse(`Colours
 black=zwart
 blue=blauw
@@ -381,7 +377,7 @@ The door is orange.=De deur is oranje.`),
  ['Articles','He lives in ___ big house.','a',['an','the','some'],'Big begint met een medeklinkerklank: a.'],
  ['Articles','I wait for ___ hour.','an',['a','the','some'],'Je hoort geen h maar “our”: een klinkerklank, dus an. Het gaat om de klank, niet om de letter.'],
  ['Articles','She goes to ___ university.','a',['an','the','some'],'Je hoort “yoo”, een medeklinkerklank: dus a. Het gaat om de klank, niet om de letter.']]},
-{id:'bg4',label:'4 My body',pages:'blz. 37–41',
+{id:'bg4',label:'4 My body',pages:'blz. 37–39',
  words:parse(`My body
 eye=oog
 ear=oor
@@ -780,7 +776,7 @@ function levelsOf(u){const L=[],U=u.id;
     L.push({id:`${U}|s2|${g.name}|${ci}`,unit:U,kind:'s2',group:g.name,keys,title:t,sub:'Zinnen typen'})});
     if(U==='c1')L.push({id:`${U}|sy|${g.name}`,unit:U,kind:'sy',group:g.name,title:g.name,sub:'Zinnen nazeggen',pass:.6})});
   [...new Set(u.grammar.map(r=>r[0]))].forEach(t=>L.push({id:`${U}|g|${t}`,unit:U,kind:'g',topic:t,title:t,sub:'Grammar'}));
-  if(U==='c1'||U==='bg1')L.push({id:`${U}|n`,unit:U,kind:'n',title:'Getallen verstaan',sub:'Luisteren: thirteen of thirty?'});
+  if(U==='c1')L.push({id:`${U}|n`,unit:U,kind:'n',title:'Getallen verstaan',sub:'Luisteren: thirteen of thirty?'});
   if(U==='c1'){L.push({id:`${U}|r`,unit:U,kind:'r',title:'Het alfabet',sub:'Letters en rijm'},{id:`${U}|sp`,unit:U,kind:'sp',title:'Namen spellen',sub:'Luisteren en typen'});}
   if(U==='c1'||U==='bg3')L.push({id:`${U}|a`,unit:U,kind:'a',title:'a of an?',sub:'Luisteren naar de klank'});
   if(U==='c1')L.push({id:`${U}|v`,unit:U,kind:'v',title:'Mijn vlog',sub:'Neem jezelf op'});
@@ -821,7 +817,7 @@ function viewStart(){
   ${quoteHTML(qd,true)}
   <div class="stack"><h3>Jouw pad</h3><span class="muted">Haal in elk level minstens 80% om het volgende level te openen.</span><ol class="path">${rows.slice(Math.max(0,cur-1),cur+4).join('')}</ol><details class="goals"><summary>Alle ${L.length} levels</summary><ol class="path" style="margin-top:8px">${rows.join('')}</ol></details></div>
   ${stickerBook()}
-  <details class="goals"><summary>Toetsdoelen (blz. 87)</summary><div class="stack" style="margin-top:8px">${GOALS.map((g,i)=>`<div class="check"><input type="checkbox" id="chk${i}" data-act="chk" data-v="${i}" ${store.checks[i]?'checked':''}><label for="chk${i}" style="flex:1">${esc(g[0])}</label></div>`).join('')}</div></details>`}
+  ${u.id==='c1'?`<details class="goals"><summary>Toetsdoelen (blz. 87)</summary><div class="stack" style="margin-top:8px">${GOALS.map((g,i)=>`<div class="check"><input type="checkbox" id="chk${i}" data-act="chk" data-v="${i}" ${store.checks[i]?'checked':''}><label for="chk${i}" style="flex:1">${esc(g[0])}</label></div>`).join('')}</div></details>`:''}`}
 function unlockCard(){return `<div class="stack"><h3>Voor de docent</h3><div class="row"><button class="btn" data-act="unlockall" aria-pressed="${store.unlockAll}">${store.unlockAll?'Levels weer vergrendelen':'Alle levels ontgrendelen'}</button><button class="btn" data-act="resetlv">Voortgang wissen</button></div><span class="muted">Ontgrendelen is handig om een level te laten zien in de klas. Het pad van leerlingen staat alleen op hun eigen apparaat.</span></div>`}
 
 function viewWords(){
