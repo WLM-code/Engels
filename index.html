@@ -226,6 +226,12 @@ input[type=text],textarea{border:2.5px solid var(--outline);border-radius:14px}
 .nextlvl{flex-wrap:wrap}.lvtxt{flex:1 1 150px}.nextlvl .btn.big{margin-left:auto}
 .stn{padding:8px 3px}.stn b{overflow-wrap:normal;hyphens:manual;font-size:.78rem}.stn small{font-size:.68rem}
 
+
+.dots{display:flex;flex-wrap:wrap;gap:6px}
+.dot{font:inherit;font-weight:700;font-size:.8rem;min-width:34px;height:34px;border-radius:10px;border:2px solid var(--outline);background:var(--surface);color:var(--ink);cursor:pointer;padding:0 4px}
+.dot.ans{background:var(--cat-bg)}
+.dot.cur{background:var(--cat);color:var(--on-cat);box-shadow:2px 2px 0 var(--outline)}
+.opt.sel{background:var(--cat-bg);border-color:var(--cat);box-shadow:3px 3px 0 var(--cat)}
 </style>
 
 <div class="app">
@@ -775,7 +781,28 @@ function diffHTML(typed,target){const a=norm(typed).split(' ').filter(Boolean),t
   const mine=a.map((w,i)=>`<span class="${l.ia.has(i)?'m':'x'}">${esc(w)}</span>`).join('');
   const miss=t.filter((w,i)=>!l.ib.has(i)).map(w=>`<span class="miss">${esc(w)}</span>`).join('');
   return `<div class="diff"><div class="field-label">Jouw zin</div>${mine}${miss?`<div class="field-label" style="margin-top:6px">Mist</div>${miss}`:''}</div>`}
-function checkTyped(){const q=Q.qs[Q.i];const inp=$('#ans');if(!inp||Q.fb)return;const val=inp.value;if(!val.trim())return;const nv=norm(val);
+function saveAns(){const inp=$('#ans');if(inp&&Q&&Q.test&&!Q.done){(Q.ans||(Q.ans=[]))[Q.i]=inp.value}}
+function tnext(){saveAns();if(Q.i<Q.qs.length-1){Q.i++;render()}}
+function gradeTest(){saveAns();Q.qs.forEach((q,i)=>{const a=(Q.ans||[])[i];let ok=false;
+    if(q.t==='choice')ok=a===q.a;
+    else if(q.t==='type'&&a&&String(a).trim()){const nv=norm(a);if(q.mode==='word')ok=accepted(q).has(nv);else{let best=0;q.answers.forEach(x=>{const t=norm(x).split(' '),a2=nv.split(' ');const l=lcs(a2,t);best=Math.max(best,l.len/Math.max(t.length,a2.length))});ok=best===1}}
+    if(ok)Q.right++;else Q.wrong.push(q);if(q.key)mark(q.key,ok)});
+  Q.done=true;const f=finishLevel(Q.level,Q.scored?Q.right/Q.scored:1);Q.res=f.res;Q.newS=f.newS;render()}
+function testHTML(){const q=Q.qs[Q.i],n=Q.qs.length,ans=Q.ans||(Q.ans=[]);
+  const has=i=>{const a=ans[i];return a!==undefined&&a!==null&&String(a).trim()!==''};
+  const un=Q.qs.filter((_,i)=>!has(i)).length;
+  const dots=Q.qs.map((_,i)=>`<button class="dot ${i===Q.i?'cur':''} ${has(i)?'ans':''}" data-act="tgo" data-v="${i}" aria-label="Vraag ${i+1}${has(i)?', beantwoord':', nog leeg'}" ${i===Q.i?'aria-current="true"':''}>${i+1}</button>`).join('');
+  const body=q.t==='choice'
+    ?`<div class="field-label">${esc(q.sub||'')}</div><div class="prompt">${esc(q.prompt)}</div><div class="opts">${q.opts.map((o,i)=>`<button class="opt ${ans[Q.i]===i?'sel':''}" aria-pressed="${ans[Q.i]===i}" data-act="tpick" data-v="${i}">${esc(o)}</button>`).join('')}</div>`
+    :`<div class="field-label">${esc(q.sub)}</div><div class="prompt ${q.mode==='sentence'?'sent':''}">${esc(q.prompt)}</div><input type="text" id="ans" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="Jouw antwoord" value="${esc(ans[Q.i]||'')}">`;
+  const last=Q.i===n-1;
+  return `<div class="qhead"><span>${Q.i+1} / ${n}</span><div class="bar"><i style="width:${(n-un)/n*100}%"></i></div><span>${n-un} beantwoord</span></div>
+   <div class="dots" role="group" aria-label="Spring naar een vraag">${dots}</div>
+   ${body}
+   <div class="row"><button class="btn" data-act="tgo" data-v="${Q.i-1}" ${Q.i===0?'disabled':''}>← Vorige</button>${last?'':`<button class="btn" data-act="tgo" data-v="${Q.i+1}">Volgende →</button>`}<button class="btn primary" data-act="tsubmit">Inleveren</button></div>
+   ${Q.warn&&un?`<div class="fb near" role="status"><b>Nog ${un} ${un===1?'vraag':'vragen'} leeg.</b><div class="why">Kies een lege vraag in de rij hierboven, of klik nog een keer op Inleveren om toch in te leveren.</div></div>`:''}
+   <button class="link" data-act="stop">Toets afbreken</button>`}
+function checkTyped(){if(Q.test){tnext();return}const q=Q.qs[Q.i];const inp=$('#ans');if(!inp||Q.fb)return;const val=inp.value;if(!val.trim())return;const nv=norm(val);
   if(q.mode==='spell'){const ok=nv.replace(/ /g,'')===norm(q.answers[0]).replace(/ /g,'');say(q.show,.8);return finish(ok,q,ok?'Goed gespeld!':`Het is <span class="ans"><b>${esc(q.show)}</b></span>.`)}
   if(q.mode==='word'){const set=accepted(q);if(set.has(nv)){say(q.show);return finish(true,q,'Goed!')}
     const near=[...set].some(a=>a.length>3&&lev(a,nv)===1);say(q.show);
@@ -872,7 +899,7 @@ function viewStart(){
   <div class="stack"><h3>Jouw pad</h3><span class="muted">Haal in elk level minstens 80% om het volgende level te openen. Haal je het Eindlevel, dan opent het volgende thema.</span>${path}</div>
   ${stickerBook()}
   ${u.id==='c1'?`<details class="goals"><summary>Toetsdoelen (blz. 87)</summary><div class="stack" style="margin-top:8px">${GOALS.map((g,i)=>`<div class="check"><input type="checkbox" id="chk${i}" data-act="chk" data-v="${i}" ${store.checks[i]?'checked':''}><label for="chk${i}" style="flex:1">${esc(g[0])}</label></div>`).join('')}</div></details>`:''}`}
-function unlockCard(){return `<div class="stack"><h3>Voor de docent</h3><div class="row"><button class="btn" data-act="unlockall" aria-pressed="${store.unlockAll}">${store.unlockAll?'Levels weer vergrendelen':'Alle levels ontgrendelen'}</button><button class="btn" data-act="resetlv">Voortgang wissen</button></div><span class="muted">Ontgrendelen is handig om een level te laten zien in de klas. Het pad van leerlingen staat alleen op hun eigen apparaat.</span></div>`}
+function unlockCard(){return `<div class="stack"><h3>Voor de docent</h3><div class="row"><button class="btn" data-act="unlockall" aria-pressed="${store.unlockAll}">${store.unlockAll?'Levels weer vergrendelen':'Alle levels ontgrendelen'}</button><button class="btn" data-act="resetlv">${S.confirmReset?'Zeker weten? Klik nogmaals om alles te wissen':'Voortgang wissen'}</button></div><span class="muted">Ontgrendelen is handig om een level te laten zien in de klas. Het pad van leerlingen staat alleen op hun eigen apparaat.</span></div>`}
 
 function viewWords(){
   if(Q)return quizHTML();
@@ -895,6 +922,7 @@ function viewGram(){
   <div class="row"><button class="btn primary" data-act="start" data-v="gram">Start oefenen</button></div>`}
 
 function quizHTML(){
+  if(Q.test&&!Q.done)return testHTML();
   if(Q.done){const tot=Q.scored||Q.qs.length;const res=Q.res||{ok:true,stars:0};const L=levelsOf(curUnit());const nxt=Q.level?L[L.findIndex(x=>x.id===Q.level.id)+1]:null;
     const grade=(1+9*Q.right/tot).toFixed(1).replace('.',',');
     return `<h2>${Q.test?(res.ok?'Voldoende!':'Nog niet voldoende'):(res.ok?'Level gehaald!':'Bijna!')}</h2>${Q.test?`<div class="hero">Cijfer ${grade}</div><div>${Q.right} van ${tot} goed</div>`:`<div class="hero">${Q.right} van ${tot} goed</div>`}${Q.level?`<div class="starsbig" aria-label="${res.stars} van 3 sterren">${starsTxt(res.stars)}</div>`:''}
@@ -1063,12 +1091,15 @@ document.addEventListener('click',e=>{
     case 'chk':store.checks[v]=el.checked;save();break;
     case 'goal':{const g=GOALS[+v];if(S.unit!=='c1'&&S.unit!=='all'){S.unit='c1';store.unit='c1'}S.gw=S.gs=S.gg='';Object.assign(S,g[2]);S.tab=g[1];Q=null;render();break}
     case 'start':startQuiz(v);break;
+    case 'tgo':{saveAns();const i=+v;if(i>=0&&i<Q.qs.length){Q.i=i;Q.warn=false;render()}break}
+    case 'tpick':(Q.ans||(Q.ans=[]))[Q.i]=+v;render();break;
+    case 'tsubmit':{saveAns();const un=Q.qs.filter((_,i)=>{const a=(Q.ans||[])[i];return a===undefined||a===null||String(a).trim()===''}).length;if(un&&!Q.warn){Q.warn=true;render()}else gradeTest();break}
     case 'stop':Q=null;S.lv=null;render();break;
     case 'lv':{const L=levelsOf(curUnit());const i=+v;if(L[i]&&levelOpen(L,i))startLevel(L[i]);break}
     case 'lvnext':{const L=levelsOf(curUnit());const i=L.findIndex(x=>x.id===Q.level.id)+1;if(L[i])startLevel(L[i]);else{Q=null;S.lv=null;render()}break}
     case 'lvdone':{const f=finishLevel(S.lv,1);S.flash=f.newS;S.lv=null;render();break}
     case 'unlockall':store.unlockAll=!store.unlockAll;save();render();break;
-    case 'resetlv':if(confirm('Alle levels en stickers op dit apparaat wissen?')){store.lv={};store.stickers={};save();Q=null;R=null;S.lv=null;render()}break;
+    case 'resetlv':if(!S.confirmReset){S.confirmReset=true;render()}else{S.confirmReset=false;store.lv={};store.stickers={};save();Q=null;R=null;S.lv=null;render()}break;
     case 'again':if(Q.level){startLevel(Q.level);break}{const k=Q.kind;if(['num','rhyme','spell','aan'].includes(k)){({num:startNum,rhyme:startRhyme,spell:startSpell,aan:startAan})[k]()}else startQuiz(k);break}
     case 'wrongs':{const w=Q.wrong.slice();Q={kind:Q.kind,qs:shuffle(w).map(q=>Object.assign({},q,q.t==='build'?{chips:shuffle(q.chips)}:{})),i:0,right:0,wrong:[],fb:null,flip:false,build:[],done:false};render();break}
     case 'say':say(v,(el.dataset.slow ? 0.5 : 0.9));break;
