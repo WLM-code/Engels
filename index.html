@@ -202,7 +202,7 @@ input[type=text],textarea{border:2.5px solid var(--outline);border-radius:14px}
 .starsbig{font-size:2.2rem;line-height:1}
 .goals{border:2px dashed var(--outline);border-radius:14px;padding:10px 14px}.goals summary{cursor:pointer;font-weight:700}
 
-.journey{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.journey{display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:6px}
 .stn{font:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;border:2.5px solid var(--outline);border-radius:16px;background:var(--surface);color:var(--ink);padding:8px 4px;cursor:pointer;box-shadow:3px 3px 0 var(--outline);min-width:0}
 .stn b{font-family:var(--font-head);font-size:.82rem;line-height:1.1;overflow-wrap:anywhere}
 .stn small{font-size:.72rem;color:var(--muted);font-weight:700}
@@ -213,7 +213,6 @@ input[type=text],textarea{border:2.5px solid var(--outline);border-radius:14px}
 .sec{display:flex;flex-direction:column;gap:8px;margin-top:6px}
 .sechead{display:flex;align-items:center;gap:10px}.sechead h3{flex:none}.sechead .bar{flex:1;height:10px;min-width:40px}
 .nowtag{background:var(--pink);color:#26124f;border:2px solid var(--outline);border-radius:99px;font-weight:800;font-size:.75rem;padding:1px 8px}
-@media (max-width:520px){.stn b{font-size:.7rem}.stn small{font-size:.64rem}}
 
 .bookpage{display:flex;flex-direction:column;gap:6px}
 .book{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:10px}
@@ -225,8 +224,8 @@ input[type=text],textarea{border:2.5px solid var(--outline);border-radius:14px}
 .slot.got .sname{color:#26124f}
 .slot.gold.got{background:var(--sun);box-shadow:3px 3px 0 var(--pink)}
 .nextlvl{flex-wrap:wrap}.lvtxt{flex:1 1 150px}.nextlvl .btn.big{margin-left:auto}
-.stn{padding:8px 2px}.stn b{overflow-wrap:normal;hyphens:manual}@media (max-width:520px){.stn b{font-size:.6rem}.stn small{font-size:.58rem}.journey{gap:4px}}
-@media (max-width:400px){.stn b{font-size:.54rem}.stn small{font-size:.54rem}}
+.stn{padding:8px 3px}.stn b{overflow-wrap:normal;hyphens:manual;font-size:.78rem}.stn small{font-size:.68rem}
+
 </style>
 
 <div class="app">
@@ -770,7 +769,7 @@ function startQuiz(kind){
   if(!qs.length){return}
   Q={kind,qs,i:0,right:0,wrong:[],fb:null,flip:false,build:[],done:false};render()}
 function nextQ(){Q.i++;Q.fb=null;Q.flip=false;Q.build=[];if(Q.i>=Q.qs.length){Q.done=true;if(Q.level&&!Q.res){const f=finishLevel(Q.level,Q.scored?Q.right/Q.scored:1);Q.res=f.res;Q.newS=f.newS}}render()}
-function finish(ok,q,html,near){Q.fb={ok,near:!!near,html:html||'',praise:ok?pick1(PRAISE):'',enc:pick1(ENCOURAGE)};if(ok)Q.right++;else Q.wrong.push(q);if(q.key)mark(q.key,ok);render()}
+function finish(ok,q,html,near){if(Q.test){if(ok)Q.right++;else Q.wrong.push(q);if(q.key)mark(q.key,ok);return nextQ()}Q.fb={ok,near:!!near,html:html||'',praise:ok?pick1(PRAISE):'',enc:pick1(ENCOURAGE)};if(ok)Q.right++;else Q.wrong.push(q);if(q.key)mark(q.key,ok);render()}
 
 function diffHTML(typed,target){const a=norm(typed).split(' ').filter(Boolean),t=norm(target).split(' ').filter(Boolean);const l=lcs(a,t);
   const mine=a.map((w,i)=>`<span class="${l.ia.has(i)?'m':'x'}">${esc(w)}</span>`).join('');
@@ -794,12 +793,13 @@ function sizeChips(){return `<div class="stack"><span class="field-label">Aantal
 function unitMastery(u){const keys=[];u.words.forEach(g=>g.items.forEach(it=>keys.push(u.id+':'+it.en)));const done=keys.filter(k=>(store.mastery[k]||0)>=2).length;return [done,keys.length]}
 
 const REPU={id:'rep',label:'Herhaling',pages:'alle woorden',words:[],stones:[],grammar:[]};
-const JOURNEY=[...UNITS,REPU];
+const TOETSU={id:'toets',label:'Oefentoetsen',pages:'thema 1 t/m 4',words:[],stones:[],grammar:[]};
+const JOURNEY=[...UNITS.filter(u=>u.id!=='c1'),TOETSU,UNITS.find(u=>u.id==='c1'),REPU];
 const PASS=.8;
-const unitDone=u=>u.id==='rep'?levelsOf(u).every(passed):!!(store.lv[u.id+'|boss']&&store.lv[u.id+'|boss'].passed);
+const unitDone=u=>levelsOf(u).every(passed);
 const unitOpenI=i=>store.unlockAll||i===0||unitDone(JOURNEY[i-1]);
 const curUnitIdx=()=>{const i=JOURNEY.findIndex(u=>!unitDone(u));return i<0?JOURNEY.length-1:i};
-const SEC={w:'Woorden',s:'Stones',sy:'Stones',g:'Grammar',n:'Luisteren',ra:'Luisteren',a:'Luisteren',v:'Vlog',rw:'Herhalen',boss:'Eindlevel'};
+const SEC={w:'Woorden',s:'Stones',sy:'Stones',g:'Grammar',n:'Luisteren',ra:'Luisteren',a:'Luisteren',v:'Vlog',rw:'Herhalen',boss:'Eindlevel',test:'Oefentoets'};
 function journeyHTML(){let tot=0,done=0;JOURNEY.forEach(u=>{const L=levelsOf(u);tot+=L.length;done+=L.filter(passed).length});
   const cur=curUnitIdx();
   return `<div class="journey" role="list">${JOURNEY.map((u,i)=>{const L=levelsOf(u);const d=L.filter(passed).length;const st=unitDone(u)?'done':!unitOpenI(i)?'lock':i===cur?'now':'open';
@@ -812,6 +812,7 @@ const levelOpen=(L,i)=>store.unlockAll||i===0||passed(L[i-1]);
 const starsTxt=n=>'★'.repeat(n)+'☆'.repeat(3-n);
 const evenChunks=(a,max)=>{const n=Math.ceil(a.length/max)||1;return chunk(a,Math.ceil(a.length/n))};
 function levelsOf(u){const L=[],U=u.id;
+  if(U==='toets'){[1,2,3,4].forEach(n=>L.push({id:`toets|${n}`,unit:'toets',kind:'test',n,title:`Oefentoets ${n}`,sub:'Mix van thema 1 t/m 4 · woorden, stones en grammar · met cijfer',pass:.55}));return L}
   if(U==='rep'){UNITS.forEach(x=>{const all=[];x.words.forEach(g=>g.items.forEach(it=>all.push(x.id+':'+it.en)));const ch=evenChunks(all,20);
     ch.forEach((c,ci)=>L.push({id:`rep|${x.id}|${ci}`,unit:'rep',src:x.id,kind:'rw',keys:c,title:x.label+(ch.length>1?` · deel ${ci+1}`:''),sub:`Alle woorden, beide kanten op (${c.length} woorden)`}))});return L}
   u.words.forEach(g=>{const ch=evenChunks(g.items,12);ch.forEach((c,ci)=>L.push({id:`${U}|w|${g.name}|${ci}`,unit:U,kind:'w',group:g.name,keys:c.map(it=>U+':'+it.en),title:g.name+(ch.length>1?` · deel ${ci+1}`:''),sub:`Woorden leren en oefenen (${c.length})`}))});
@@ -819,7 +820,7 @@ function levelsOf(u){const L=[],U=u.id;
   if(U==='c1')L.push({id:`${U}|sy`,unit:U,kind:'sy',title:'Zinnen nazeggen',sub:'Zeg je Stones hardop',pass:.6});
   const gi=u.grammar.map((r,i)=>i);evenChunks(gi,12).forEach((c,ci)=>{const tops=[...new Set(c.map(i=>u.grammar[i][0]))];L.push({id:`${U}|g|${ci}`,unit:U,kind:'g',keys:c.map(i=>U+':g'+i),title:tops.join(' + '),sub:`Grammar (${c.length} vragen)`})});
   if(U==='c1')L.push({id:`${U}|n`,unit:U,kind:'n',title:'Getallen verstaan',sub:'Luisteren: thirteen of thirty?'},{id:`${U}|ra`,unit:U,kind:'ra',title:'Het alfabet',sub:'Letters, rijm en namen spellen'});
-  if(U==='c1'||U==='bg3')L.push({id:`${U}|a`,unit:U,kind:'a',title:'a of an?',sub:'Luisteren naar de klank'});
+  if(U==='c1')L.push({id:`${U}|a`,unit:U,kind:'a',title:'a of an?',sub:'Luisteren naar de klank'});
   if(U==='c1')L.push({id:`${U}|v`,unit:U,kind:'v',title:'Mijn vlog',sub:'Neem jezelf op'});
   L.push({id:`${U}|boss`,unit:U,kind:'boss',title:'Eindlevel',sub:'Alles door elkaar: laat zien wat je kunt'});
   return L}
@@ -829,6 +830,13 @@ function startLevel(l){S.lv=l;S.flash=null;Q=null;R=null;const keep=[S.unit,S.gw
   try{
   if(l.kind==='w'){S.gw=l.group;const [A,B]=split();qs=[...wordQs('wcards').filter(inK).sort(byK).map(q=>Object.assign(q,{learn:true})),...shuffle([...wordQs('wchoice').filter(q=>A.has(q.key)),...wordQs('wtype').filter(q=>B.has(q.key))])]}
   else if(l.kind==='s'){S.gs=l.group;const [A,B]=split();qs=[...allStones().filter(it=>it.group===l.group&&l.keys.includes(it.key)).map(it=>({t:'card',learn:true,front:it.en,back:it.nl,say:it.en,key:it.key})),...shuffle([...stoneQs('sbuild').filter(q=>A.has(q.key)),...stoneQs('stype').filter(q=>B.has(q.key))])]}
+  else if(l.kind==='test'){const BG=UNITS.filter(u=>u.id!=='c1');const mine=i=>i%4===l.n-1;let wi=0,si=0,gi=0;const W=[],St=[],G=[];
+    BG.forEach(u=>{S.unit=u.id;S.gw=S.gs=S.gg='';const wk=new Set(),sk=new Set(),gk=new Set();
+      u.words.forEach(g=>g.items.forEach(it=>{if(mine(wi++))wk.add(u.id+':'+it.en)}));
+      u.stones.forEach(g=>g.items.forEach(it=>{if(mine(si++))sk.add(u.id+':'+it.en)}));
+      u.grammar.forEach((r,i)=>{if(mine(gi++))gk.add(u.id+':g'+i)});
+      W.push(...wordQs('wtype').filter(q=>wk.has(q.key)));St.push(...stoneQs('stype').filter(q=>sk.has(q.key)));G.push(...gramQs().filter(q=>gk.has(q.key)))});
+    qs=[...shuffle(W),...shuffle(St),...shuffle(G)].map(q=>Object.assign(q,{hint:null}))}
   else if(l.kind==='rw'){S.gw='';qs=shuffle([...wordQs('wchoice').filter(inK),...wordQs('wtype').filter(inK)])}
   else if(l.kind==='g'){S.gg='';qs=gramQs().filter(inK)}
   else if(l.kind==='boss'){S.gw=S.gs=S.gg='';qs=[...wordQs('wchoice').slice(0,5),...wordQs('wtype').slice(0,3),...stoneQs('sbuild').slice(0,3),...gramQs().slice(0,4)]}
@@ -837,11 +845,11 @@ function startLevel(l){S.lv=l;S.flash=null;Q=null;R=null;const keep=[S.unit,S.gw
   else if(l.kind==='ra'){startRhyme();const a=Q.qs;startSpell();Q.qs=[...a,...Q.qs];Q.kind='rhyme';Q.level=l;Q.scored=Q.qs.length;render();return}
   else{({n:startNum,a:startAan})[l.kind]();Q.level=l;Q.scored=Q.qs.length;render();return}
   }finally{S.unit=keep[0];S.gw=keep[1];S.gs=keep[2];S.gg=keep[3]}
-  Q={kind:'lv',qs,i:0,right:0,wrong:[],fb:null,flip:false,build:[],done:false,level:l,scored:qs.filter(q=>!q.learn).length};render()}
+  Q={kind:'lv',qs,i:0,right:0,wrong:[],fb:null,flip:false,build:[],done:false,level:l,test:l.kind==='test',scored:qs.filter(q=>!q.learn).length};render()}
 function recordLevel(l,p){const pass=l.pass||PASS;const prev=store.lv[l.id]||{};const ok=p>=pass;const stars=p>=1?3:p>=.9?2:ok?1:0;const first=ok&&!prev.passed;
   store.lv[l.id]={passed:!!prev.passed||ok,best:Math.max(prev.best||0,Math.round(p*100)),stars:Math.max(prev.stars||0,stars)};save();return {ok,first,stars:ok?stars:0}}
-const KIND_ICON={w:'flower',s:'heart',sy:'smile',g:'bolt',n:'sparkle',ra:'sparkle',a:'sparkle',v:'moon',rw:'star',boss:'rainbow'};
-const KIND_CAT={w:'words',s:'stones',sy:'speak',g:'gram',n:'speak',ra:'speak',a:'speak',v:'speak',rw:'words',boss:'teach'};
+const KIND_ICON={w:'flower',s:'heart',sy:'smile',g:'bolt',n:'sparkle',ra:'sparkle',a:'sparkle',v:'moon',rw:'star',boss:'rainbow',test:'bolt'};
+const KIND_CAT={w:'words',s:'stones',sy:'speak',g:'gram',n:'speak',ra:'speak',a:'speak',v:'speak',rw:'words',boss:'teach',test:'teach'};
 let toast=null;
 function viewStart(){
   if(Q&&Q.level)return quizHTML();
@@ -849,10 +857,10 @@ function viewStart(){
   if(S.lv&&S.lv.kind==='v')return `<h2>${esc(S.lv.title)}</h2>${vlogHTML()}<div class="row"><button class="btn primary" data-act="lvdone">Klaar met mijn vlog</button><button class="btn" data-act="stop">Naar het pad</button></div>`;
   const u=curUnit(),L=levelsOf(u);const done=L.filter(passed).length;let cur=L.findIndex(l=>!passed(l));const all=cur<0;if(all)cur=L.length-1;
   const cl=L[cur];const ui=JOURNEY.indexOf(u);const nextU=JOURNEY[ui+1];
-  const hero=all?`<div class="award">${stk('rainbow')}<div><b class="hero" style="font-size:1.6rem">Thema gehaald!</b><div>Wat een topprestatie met ${esc(u.label)}.</div>${nextU&&unitOpenI(ui+1)?`<div class="row" style="margin-top:8px"><button class="btn primary" data-act="unit" data-v="${nextU.id}">Naar ${esc(nextU.label)} →</button></div>`:'<div><b>Je hebt de hele reis voltooid!</b></div>'}</div></div>`
+  const hero=all?`<div class="award">${stk('rainbow')}<div><b class="hero" style="font-size:1.6rem">Thema gehaald!</b><div>Wat een topprestatie met ${esc(u.label)}.</div>${L.some(x=>x.kind==='boss')?`<div class="row" style="margin-top:8px"><button class="btn" data-act="lv" data-v="${L.findIndex(x=>x.kind==='boss')}">Eindlevel opnieuw</button></div>`:''}${nextU&&unitOpenI(ui+1)?`<div class="row" style="margin-top:8px"><button class="btn primary" data-act="unit" data-v="${nextU.id}">Naar ${esc(nextU.label)} →</button></div>`:'<div><b>Je hebt de hele reis voltooid!</b></div>'}</div></div>`
    :`<div class="nextlvl cat-${KIND_CAT[cl.kind]}">${stk(KIND_ICON[cl.kind])}<div class="lvtxt"><span class="field-label">Level ${cur+1} van ${L.length}</span><b>${esc(cl.title)}</b><small>${esc(cl.sub)}</small></div><button class="btn primary big" data-act="lv" data-v="${cur}">Start</button></div>`;
   const row=(l,i)=>{const st=store.lv[l.id]||{};const open=levelOpen(L,i);const cls=passed(l)?'done':i===cur?'now':open?'open':'lock';
-    return `<li class="lvrow ${cls} cat-${KIND_CAT[l.kind]}"><span class="nr">${i+1}</span>${stk(KIND_ICON[l.kind])}<span class="lvt"><b>${esc(l.title)}</b><small>${esc(l.sub)}${st.best?` · beste score ${st.best}%`:''}</small></span><span class="rt" aria-label="${passed(l)?(st.stars||1)+' van 3 sterren':open?'open':'op slot'}">${passed(l)?`<span class="stars">${starsTxt(st.stars||1)}</span>`:i===cur?'<span class="nowtag">NU</span>':open?'':'🔒'}</span>${open&&(passed(l)||store.unlockAll)&&i!==cur?`<button class="btn small" data-act="lv" data-v="${i}">${passed(l)?'Opnieuw':'Start'}</button>`:''}</li>`};
+    return `<li class="lvrow ${cls} cat-${KIND_CAT[l.kind]}"><span class="nr">${i+1}</span>${stk(KIND_ICON[l.kind])}<span class="lvt"><b>${esc(l.title)}</b><small>${esc(l.sub)}${st.best?` · beste score ${st.best}%`:''}</small></span><span class="rt" aria-label="${passed(l)?(st.stars||1)+' van 3 sterren':open?'open':'op slot'}">${passed(l)?`<span class="stars">${starsTxt(st.stars||1)}</span>`:i===cur?'<span class="nowtag">NU</span>':open?'':'🔒'}</span>${open&&(passed(l)||(store.unlockAll&&i!==cur))?`<button class="btn small" data-act="lv" data-v="${i}">${passed(l)?'Opnieuw':'Start'}</button>`:''}</li>`};
   const secs=[];L.forEach((l,i)=>{const n=SEC[l.kind];let g=secs[secs.length-1];if(!g||g.n!==n){g={n,items:[]};secs.push(g)}g.items.push([l,i])});
   const path=secs.map(g=>{const d=g.items.filter(([l])=>passed(l)).length;const t=g.items.length;
     return `<div class="sec"><div class="sechead"><h3>${esc(g.n)}</h3><span class="muted" style="font-variant-numeric:tabular-nums">${d} / ${t}</span><div class="bar mini" aria-hidden="true"><i style="width:${d/t*100}%"></i></div></div><ol class="path">${g.items.map(([l,i])=>row(l,i)).join('')}</ol></div>`}).join('');
@@ -888,11 +896,12 @@ function viewGram(){
 
 function quizHTML(){
   if(Q.done){const tot=Q.scored||Q.qs.length;const res=Q.res||{ok:true,stars:0};const L=levelsOf(curUnit());const nxt=Q.level?L[L.findIndex(x=>x.id===Q.level.id)+1]:null;
-    return `<h2>${res.ok?'Level gehaald!':'Bijna!'}</h2><div class="hero">${Q.right} van ${tot} goed</div>${Q.level?`<div class="starsbig" aria-label="${res.stars} van 3 sterren">${starsTxt(res.stars)}</div>`:''}
+    const grade=(1+9*Q.right/tot).toFixed(1).replace('.',',');
+    return `<h2>${Q.test?(res.ok?'Voldoende!':'Nog niet voldoende'):(res.ok?'Level gehaald!':'Bijna!')}</h2>${Q.test?`<div class="hero">Cijfer ${grade}</div><div>${Q.right} van ${tot} goed</div>`:`<div class="hero">${Q.right} van ${tot} goed</div>`}${Q.level?`<div class="starsbig" aria-label="${res.stars} van 3 sterren">${starsTxt(res.stars)}</div>`:''}
     <p style="margin:0;font-weight:700">${res.ok?esc(resultMsg(Q.right,tot)):'Je hebt minstens '+Math.round((Q.level&&Q.level.pass||PASS)*100)+'% nodig om verder te gaan. Probeer het nog een keer, jij kunt dit!'}</p>
     <div class="bar"><i style="width:${Q.right/tot*100}%"></i></div>${awardHTML(Q.newS)}
     ${Q.wrong.length?`<div class="stack"><span class="field-label">Dit ging nog mis</span><div class="scroll-x"><table><tbody>${Q.wrong.map(q=>`<tr><td>${esc(q.summary)}</td></tr>`).join('')}</tbody></table></div></div>`:''}
-    <div class="row">${res.ok&&nxt?'<button class="btn primary" data-act="lvnext">Volgend level →</button>':`<button class="btn primary" data-act="again">${res.ok?'Nog een keer':'Probeer opnieuw'}</button>`}<button class="btn" data-act="stop">Naar het pad</button></div>`}
+    <div class="row">${res.ok&&nxt?'<button class="btn primary" data-act="lvnext">Volgend level →</button><button class="btn" data-act="again">Opnieuw</button>':`<button class="btn primary" data-act="again">${res.ok?'Nog een keer':'Probeer opnieuw'}</button>`}<button class="btn" data-act="stop">Naar het pad</button></div>`}
   const q=Q.qs[Q.i];
   const head=`<div class="qhead"><span>${Q.i+1} / ${Q.qs.length}</span><div class="bar"><i style="width:${Q.i/Q.qs.length*100}%"></i></div><button class="link" data-act="stop">Stop</button></div>`;
   const sp=q.say?`<button class="btn small speakbtn" data-act="say" data-v="${esc(q.say)}" aria-label="Luister">🔊 Luister</button>`:'';
@@ -1055,7 +1064,7 @@ document.addEventListener('click',e=>{
     case 'goal':{const g=GOALS[+v];if(S.unit!=='c1'&&S.unit!=='all'){S.unit='c1';store.unit='c1'}S.gw=S.gs=S.gg='';Object.assign(S,g[2]);S.tab=g[1];Q=null;render();break}
     case 'start':startQuiz(v);break;
     case 'stop':Q=null;S.lv=null;render();break;
-    case 'lv':{const L=levelsOf(curUnit());const i=+v;if(levelOpen(L,i))startLevel(L[i]);break}
+    case 'lv':{const L=levelsOf(curUnit());const i=+v;if(L[i]&&levelOpen(L,i))startLevel(L[i]);break}
     case 'lvnext':{const L=levelsOf(curUnit());const i=L.findIndex(x=>x.id===Q.level.id)+1;if(L[i])startLevel(L[i]);else{Q=null;S.lv=null;render()}break}
     case 'lvdone':{const f=finishLevel(S.lv,1);S.flash=f.newS;S.lv=null;render();break}
     case 'unlockall':store.unlockAll=!store.unlockAll;save();render();break;
